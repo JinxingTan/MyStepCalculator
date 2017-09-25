@@ -16,6 +16,8 @@
 
 #define dXStartWalkStep	10
 
+#define dXUseCalSleep
+
 typedef void (*SleepCallback)(unsigned int tInputStartTime, int tInputMode);
 
 typedef struct{
@@ -36,19 +38,23 @@ enum{
 };
 
 typedef struct{
-	int up;
+/*	int up;
 	int down;
 	int prevValue;
 	int falseVlue;
 	StepValue pMinValue[5];
 	int minIndex;
 	StepValue pMaxValue[5];
-	int maxIndex;
-	
+	int maxIndex;*/
+
 	unsigned int startTime;
+	int staticCount;
+	int prevCommitMode;
 	int sleepMode;
 	int totalValue;
 	int totalCount;
+
+	int startWalkIndex;
 }SleepParam;
 SleepParam *pXSleepParam=NULL;
 
@@ -82,6 +88,7 @@ static int tXTestCnt=0;
 void MySleepCallback(unsigned int tInputStartTime, int tInputMode)
 {
 	printf("damon ===> sleep call back : %d %d \n", tInputStartTime, tInputMode);
+	pXSleepParam->prevCommitMode=tInputMode;
 }
 
 void draw_image(int *pInputData, int tInputLength, char *pInputWindowName)
@@ -114,11 +121,11 @@ printf("damon ===> max val : %d \n", tTempMaxVal);
 		tTempCurPoint.x=m;
 		tTempCurPoint.y=1000-pTempOutData[m];
 	//		cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(255, 0, 0), 1, 8);
-		if(m>1282 && m<1370)
+		if(m>1049 && m<2111)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 255, 255), 1, 8, 0);
-		else if(m>=1370 && m<1413 /*tTempSampleCnt+260*/)
+		else if(m>=2814 && m<2843 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 255, 0), 1, 8, 0);
-		else if(m>=1413 && m<1466 /*tTempSampleCnt+260*/)
+		else if(m>=2903 && m<3608 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 0, 255), 1, 8, 0);
 		else if(m>=1466 && m<1507 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(255, 255, 0), 1, 8, 0);
@@ -178,6 +185,7 @@ void filter_data(int *pInputData ,int tInputLength)
 {
 	int i=0, j=0;
 	int pTempValue[5]={0};
+	int tTempTotalVal=0;
 
 	// 中值滤波
 	for(i=0; i<tInputLength-5; i++)
@@ -185,6 +193,7 @@ void filter_data(int *pInputData ,int tInputLength)
 		for(j=0; j<5; j++)
 		{
 			pTempValue[j]=pInputData[i+j];
+			tTempTotalVal += pTempValue[j];
 		}
 
 	//	printf("damon ===> start : %d %d %d %d %d \n", pTempValue[0], pTempValue[1], pTempValue[2], pTempValue[3], pTempValue[4]);
@@ -213,6 +222,7 @@ void filter_data(int *pInputData ,int tInputLength)
 }
 
 
+#if 0
 void process_sleep(int tInputData, int tInputIdx)
 {
 
@@ -234,8 +244,11 @@ void process_sleep(int tInputData, int tInputIdx)
 		return ;
 	}
 
+//printf("damon ===> sleep data : %d %d \n", tInputIdx, tInputData);
+
 	pXSleepParam->totalValue += tInputData;
 	pXSleepParam->totalCount++;
+	int tTempAvgVal=pXSleepParam->totalValue/pXSleepParam->totalCount;
 	if(tInputData>pXSleepParam->prevValue)
 	{
 		if(pXSleepParam->up==0 && pXSleepParam->down==0)
@@ -246,12 +259,63 @@ void process_sleep(int tInputData, int tInputIdx)
 			pXSleepParam->up=1;
 		}else if(pXSleepParam->up==1)
 		{
-			
+			if(pXSleepParam->falseVlue==1)
+			{
+				if(tInputData>pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value)
+				{
+					pXSleepParam->falseVlue=0;
+					pXSleepParam->maxIndex--;
+				}else if((tInputIdx-pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].index>8) && (tInputIdx-tTempAvgVal>10))
+				{
+					pXSleepParam->falseVlue=0;
+					pXSleepParam->maxIndex--;
+				}
+			}
 		}else if(pXSleepParam->down==1)
 		{
 			if(pXSleepParam->falseVlue==0)
 			{
 				pXSleepParam->falseVlue=1;
+
+if(pXSleepParam->minIndex<0)
+	printf("damon ===> min idx error : %d \n", pXSleepParam->minIndex);
+				if(pXSleepParam->minIndex>0)
+				{
+					// no move 
+				printf("damon ===> sleep mode = %d - %d %d \n", pXSleepParam->sleepMode, tInputIdx, pXSleepParam->pMinValue[pXSleepParam->minIndex-1].index);
+				sleep(1);
+					if(tInputIdx-pXSleepParam->pMinValue[pXSleepParam->minIndex-1].index>200)
+					{
+						if(pXSleepParam->sleepMode==dXSleep_WakeUp)
+						{
+							if(pXSleepParam->staticCount==0)
+							{
+								pXSleepParam->staticCount=tInputIdx;									
+								pXSleepParam->startTime=tInputIdx;
+							}else if(tInputIdx-pXSleepParam->staticCount>200)
+							{
+								pXSleepParam->sleepMode=dXSleep_DeepSleep;
+								pXSleepParam->startTime=pXSleepParam->staticCount;
+							}
+						}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+						{
+							if(pXSleepParam->prevCommitMode!=dXSleep_DeepSleep && tInputIdx-pXSleepParam->startTime>400)
+							{
+								// cmomit data
+								if(FCSleepCallback!=NULL)
+									FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
+						
+							}
+						}else if(pXSleepParam->sleepMode==dXSleep_LightSleep)
+						{
+							pXSleepParam->sleepMode=dXSleep_DeepSleep;
+							pXSleepParam->startTime=tInputIdx;
+						}
+
+						pXSleepParam->minIndex=0;
+					}
+				}
+
 
 				if(pXSleepParam->minIndex<5)
 				{
@@ -266,44 +330,97 @@ void process_sleep(int tInputData, int tInputIdx)
 				pXSleepParam->up=1;
 				pXSleepParam->falseVlue=0;
 
+//printf("damon ===>  min idx = %d , max idx = %d \n", pXSleepParam->minIndex, pXSleepParam->maxIndex);
+
 				int tTempAvg=pXSleepParam->totalValue/pXSleepParam->totalCount;
 				if(pXSleepParam->minIndex>=5 && pXSleepParam->maxIndex>0)
 				{
-					int tTempMinAvgVal=(pXSleepParam->pMinValue[0].value+pXSleepParam->pMinValue[1].value+
-						pXSleepParam->pMinValue[2].value+pXSleepParam->pMinValue[3].value)/4;
-
-					if((pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value-tTempMinAvgVal<10)
-						&& (pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value-tTempAvg<10))
+					if(pXStepParam->stepMode==dXMode_Walk)
 					{
-						if(pXSleepParam->sleepMode==dXSleep_WakeUp)
-						{
-							pXSleepParam->sleepMode=dXSleep_DeepSleep;
-							pXSleepParam->startTime=tInputIdx;
-						}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
-						{
-							if(tInputIdx-pXSleepParam->startTime>100)
-							{
-								// cmomit data
-								if(FCSleepCallback!=NULL)
-								{
-									FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
-								}
-							}
-						}else if(pXSleepParam->sleepMode==dXSleep_LightSleep)
-						{
-							
-						}
-
-					}else
-					{
-						if(pXSleepParam->sleepMode==dXSleep_NotDetec)
+						if(pXSleepParam->sleepMode==dXSleep_LightSleep || pXSleepParam->sleepMode==dXSleep_DeepSleep)
 						{
 							pXSleepParam->sleepMode=dXSleep_WakeUp;
-						}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+							pXSleepParam->startTime=tInputIdx;
+
+							if(FCSleepCallback)
+								FCSleepCallback(pXSleepParam->startTime, dXSleep_WakeUp);
+						}
+
+						pXSleepParam->staticCount=0;
+					}else
+					{
+					#if 0
+						int tTempMinAvgVal=(pXSleepParam->pMinValue[0].value+pXSleepParam->pMinValue[1].value+
+							pXSleepParam->pMinValue[2].value+pXSleepParam->pMinValue[3].value)/4;
+					printf("damon ===> %d %d %d \n", pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value, tTempMinAvgVal, tTempAvg);
+					sleep(1);
+						if((pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value-tTempMinAvgVal<10)
+							&& (pXSleepParam->pMaxValue[pXSleepParam->maxIndex-1].value-tTempAvg<10))
 						{
+							if(pXSleepParam->sleepMode==dXSleep_WakeUp)
+							{
+								if(pXSleepParam->staticCount==0)
+								{
+									pXSleepParam->staticCount=tInputIdx;									
+									pXSleepParam->startTime=tInputIdx;
+								}else if(tInputIdx-pXSleepParam->staticCount>200)
+								{
+									pXSleepParam->sleepMode=dXSleep_DeepSleep;
+									pXSleepParam->startTime=pXSleepParam->staticCount;
+								}
+							}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+							{
+								if(pXSleepParam->prevCommitMode!=dXSleep_DeepSleep && tInputIdx-pXSleepParam->startTime>400)
+								{
+									// cmomit data
+									if(FCSleepCallback!=NULL)
+										FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
+
+								}
+							}else if(pXSleepParam->sleepMode==dXSleep_LightSleep)
+							{
+								pXSleepParam->sleepMode=dXSleep_DeepSleep;
+								pXSleepParam->startTime=tInputIdx;
+							}
+
+						}else
+					#endif
+						{
+							if(pXSleepParam->sleepMode==dXSleep_NotDetec)
+							{
+								if(pXSleepParam->startTime==0)
+								{
+									pXSleepParam->startTime=tInputIdx;
+								}else if(tInputIdx-pXSleepParam->startTime>200)
+								{
+									pXSleepParam->sleepMode=dXSleep_WakeUp;
+								}
+							}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+							{
+
+								if(pXSleepParam->prevCommitMode==dXSleep_DeepSleep)
+								{
+									pXSleepParam->sleepMode=dXSleep_LightSleep;
+									pXSleepParam->startTime=tInputIdx;
+									if(FCSleepCallback)
+										FCSleepCallback(pXSleepParam->startTime, dXSleep_LightSleep);										
+									
+								}else if(pXSleepParam->prevCommitMode!=dXSleep_LightSleep)
+								{
+									pXSleepParam->sleepMode=dXSleep_WakeUp;
+									pXSleepParam->startTime=tInputIdx;
+								}else if(pXSleepParam->prevCommitMode==dXSleep_LightSleep)
+								{
+									pXSleepParam->sleepMode=dXSleep_LightSleep;
+									pXSleepParam->startTime=tInputIdx;
+								}
 							
+							}
+
+							pXSleepParam->staticCount=0;
 						}
 					}
+					
 
 					int i=0;
 					for(i=0; i<5; i++)
@@ -332,12 +449,26 @@ void process_sleep(int tInputData, int tInputIdx)
 			pXSleepParam->down=1;
 		}else if(pXSleepParam->down==1)
 		{
-
+			if(pXSleepParam->falseVlue==1)
+			{
+				if(tInputIdx<pXSleepParam->pMinValue[pXSleepParam->minIndex-1].value)
+				{				
+					pXSleepParam->falseVlue=0;
+					pXSleepParam->minIndex--;
+				}else if((tInputIdx-pXSleepParam->pMinValue[pXSleepParam->minIndex-1].index>8) && (tTempAvgVal-tInputData>10))
+				{					
+					pXSleepParam->falseVlue=0;
+					pXSleepParam->minIndex--;
+				}
+			}
 		}else if(pXSleepParam->up==1)
 		{
 			if(pXSleepParam->falseVlue==0)
 			{
 				pXSleepParam->falseVlue=1;
+
+	if(pXSleepParam->maxIndex<0)
+		printf("damon ===> max idx error : %d \n", pXSleepParam->maxIndex);
 
 				if(pXSleepParam->maxIndex<5)
 				{
@@ -352,26 +483,112 @@ void process_sleep(int tInputData, int tInputIdx)
 				pXSleepParam->down=1;
 				pXSleepParam->falseVlue=0;
 
-				int i=0;
-				for(i=0; i<3; i++)
+				if(pXSleepParam->maxIndex>=5)
 				{
-					if(i+3<5)
+					int i=0;
+					for(i=0; i<3; i++)
 					{
-						pXSleepParam->pMaxValue[i].index=pXSleepParam->pMaxValue[i+3].index;
-						pXSleepParam->pMaxValue[i].value=pXSleepParam->pMaxValue[+3].value;
-					}else
-					{
-						pXSleepParam->pMaxValue[i].index=0;
-						pXSleepParam->pMaxValue[i].value=0;
+						if(i+3<5)
+						{
+							pXSleepParam->pMaxValue[i].index=pXSleepParam->pMaxValue[i+3].index;
+							pXSleepParam->pMaxValue[i].value=pXSleepParam->pMaxValue[+3].value;
+						}else
+						{
+							pXSleepParam->pMaxValue[i].index=0;
+							pXSleepParam->pMaxValue[i].value=0;
+						}
 					}
+					pXSleepParam->maxIndex -= 3;
 				}
-				pXSleepParam->maxIndex -= 3;
 			}
 		}
 	}
 
 	pXSleepParam->prevValue=tInputData;
 
+}
+#endif
+
+
+void ProcessWaveStep(int tInputMinStepPrevIdx, int tInputMinStepCurIdx)
+{
+#ifdef dXUseCalSleep
+		int tTempSubIdx=tInputMinStepCurIdx-tInputMinStepPrevIdx;
+//printf("damon ===> process step : %d %d %d \n", tInputMinStepPrevIdx, tInputMinStepCurIdx, tTempSubIdx);
+		if(pXSleepParam->startWalkIndex>0 && tInputMinStepPrevIdx==pXSleepParam->startWalkIndex)
+		{
+			if(pXSleepParam->sleepMode==dXSleep_LightSleep || pXSleepParam->sleepMode==dXSleep_DeepSleep)
+			{
+				pXSleepParam->sleepMode=dXSleep_WakeUp;
+				pXSleepParam->startTime=pXStepParam->pMinValue[0].index;
+			
+				if(FCSleepCallback)
+					FCSleepCallback(pXSleepParam->startTime, dXSleep_WakeUp);
+
+				return ;
+			}
+		}
+
+		if(tTempSubIdx>500)
+		{
+			if(pXSleepParam->sleepMode==dXSleep_WakeUp)
+			{
+			/*	if(pXSleepParam->staticCount==0)
+				{
+					pXSleepParam->staticCount=i;									
+					pXSleepParam->startTime=i;
+				}else if(i-pXSleepParam->staticCount>200)
+				{
+					pXSleepParam->sleepMode=dXSleep_DeepSleep;
+					pXSleepParam->startTime=pXSleepParam->staticCount;
+				}*/
+				
+				pXSleepParam->sleepMode=dXSleep_DeepSleep;
+				pXSleepParam->startTime=tInputMinStepPrevIdx;
+	
+				if(FCSleepCallback!=NULL)
+					FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
+			}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+			{
+			/*	if(pXSleepParam->prevCommitMode!=dXSleep_DeepSleep)
+				{
+					// cmomit data
+					if(FCSleepCallback!=NULL)
+						FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
+			
+				}*/
+			}else if(pXSleepParam->sleepMode==dXSleep_LightSleep)
+			{
+				pXSleepParam->sleepMode=dXSleep_DeepSleep;
+				pXSleepParam->startTime=tInputMinStepPrevIdx;
+
+				if(FCSleepCallback!=NULL)
+					FCSleepCallback(pXSleepParam->startTime, dXSleep_DeepSleep);
+			}
+	
+		//	pXSleepParam->minIndex=0;
+		}else
+		{
+			if(pXSleepParam->sleepMode==dXSleep_NotDetec)
+			{
+				pXSleepParam->startTime=tInputMinStepPrevIdx;
+				pXSleepParam->sleepMode=dXSleep_WakeUp;
+			}else if(pXSleepParam->sleepMode==dXSleep_WakeUp)
+			{
+				
+			}else if(pXSleepParam->sleepMode==dXSleep_LightSleep)
+			{
+				
+			}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+			{
+				pXSleepParam->sleepMode=dXSleep_LightSleep;
+				pXSleepParam->startTime=tInputMinStepPrevIdx;
+
+				if(FCSleepCallback!=NULL)
+					FCSleepCallback(pXSleepParam->startTime, dXSleep_LightSleep);				
+			}
+		}
+#endif
 }
 
 void cal_step(int *pInputData, int tInputLength)
@@ -383,14 +600,37 @@ void cal_step(int *pInputData, int tInputLength)
 	}
 
 printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam->maxIndex, pXStepParam->falseVlue);
+#ifdef dXUseCalSleep
+	if(pXSleepParam==NULL)
+	{
+		pXSleepParam=(SleepParam *)malloc(sizeof(SleepParam));
+		memset(pXSleepParam, 0, sizeof(SleepParam));
+		pXSleepParam->sleepMode=dXSleep_NotDetec;
+	}
+
+	if(FCSleepCallback==NULL)
+	{
+		FCSleepCallback=MySleepCallback;
+	}
+#endif
 
 
 	int i=0;
 	int tTempCurVal=0;
 	int tTempAvgVal=0;
 	int tTempHighHzVal=0;
+
+
+//	for(i=0; i<tInputLength; i++)
+//	{
+//		process_sleep(pInputData[i], i);
+//	}
+
+#if 1
 	for(i=0; i<tInputLength; i++)
 	{
+	//	process_sleep(pInputData[i], i);
+		
 		if(i==0)
 		{
 			pXStepParam->prevValue=pInputData[0];
@@ -444,13 +684,31 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							pXStepParam->pMinValue[pXStepParam->minIndex-1].value,
 							pXStepParam->pMinValue[pXStepParam->minIndex-2].index, 
 							pXStepParam->pMinValue[pXStepParam->minIndex-2].value);
+					
 
 						if((pXStepParam->stepMode==dXMode_Static) && (i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>120))
+						{
+							int j=0;
+							for(j=0; j<pXStepParam->minIndex; j++)
+							{
+							printf("damon  ===> delete val : %d \n", pXStepParam->pMinValue[j].index);
+						/*		if(tXTestCnt<1024)
+									pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
+							
+							#ifdef dXUseCalSleep
+								if(tXTestCnt>=2)
+								{
+									ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+								}
+							#endif */
+							}
+							
 							pXStepParam->minIndex=0;
-						else
-						if((i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>200) 
+						}
+						else	if((i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>200) 
 							|| (pXStepParam->lastStepIndex>0 && i-pXStepParam->lastStepIndex>300))
 						{
+						
 							printf("damon ===> enter static mode : %d %d  %d \n", i, pXStepParam->lastStepIndex, pXStepParam->pMinValue[pXStepParam->minIndex-1].index);							
 							if(pXStepParam->stepMode==dXMode_Walk)
 							{
@@ -459,6 +717,13 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								{
 									if(tXTestCnt<1024)
 										pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
+
+								#ifdef dXUseCalSleep
+									if(tXTestCnt>=2)
+									{
+										ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+									}
+								#endif
 								}
 								
 								pXStepParam->stepCount += pXStepParam->minIndex;
@@ -543,6 +808,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 					pXStepParam->down=0;
 					pXStepParam->up=1;
 					pXStepParam->falseVlue=0;
+				
 
 					if(tTempAvgVal-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<5)
 					{
@@ -553,6 +819,44 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 						
 						pXStepParam->minIndex--;
 					}
+
+			/*	#ifdef dXUseCalSleep
+					if(pXStepParam->minIndex>3)
+					{
+						if(pXSleepParam->sleepMode==dXSleep_NotDetec)
+						{
+							if(pXSleepParam->startTime==0)
+							{
+								pXSleepParam->startTime=pXStepParam->pMinValue[pXStepParam->minIndex-2].index;
+							}else if(i-pXSleepParam->startTime>200)
+							{
+								pXSleepParam->sleepMode=dXSleep_WakeUp;
+							}
+						}else if(pXSleepParam->sleepMode==dXSleep_DeepSleep)
+						{
+
+							if(pXSleepParam->prevCommitMode==dXSleep_DeepSleep)
+							{
+								pXSleepParam->sleepMode=dXSleep_LightSleep;
+								pXSleepParam->startTime=pXStepParam->pMinValue[pXStepParam->minIndex-2].index;
+								if(FCSleepCallback)
+									FCSleepCallback(pXSleepParam->startTime, dXSleep_LightSleep);										
+								
+							}else if(pXSleepParam->prevCommitMode!=dXSleep_LightSleep)
+							{
+								pXSleepParam->sleepMode=dXSleep_WakeUp;
+								pXSleepParam->startTime=pXStepParam->pMinValue[pXStepParam->minIndex-2].index;
+							}else if(pXSleepParam->prevCommitMode==dXSleep_LightSleep)
+							{
+								pXSleepParam->sleepMode=dXSleep_LightSleep;
+								pXSleepParam->startTime=pXStepParam->pMinValue[pXStepParam->minIndex-2].index;
+							}
+						
+						}
+
+						pXSleepParam->staticCount=0;
+					}
+				#endif	*/
 
 
 					if(pXStepParam->stepMode==dXMode_Static)
@@ -569,6 +873,25 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								pXStepParam->startStep=0;
 
 								pXStepParam->lastStepIndex=pXStepParam->pMinValue[4].index;
+
+
+							#ifdef dXUseCalSleep
+								if(pXSleepParam)
+								{
+								/*	if(pXSleepParam->sleepMode==dXSleep_LightSleep || pXSleepParam->sleepMode==dXSleep_DeepSleep)
+									{
+										pXSleepParam->sleepMode=dXSleep_WakeUp;
+										pXSleepParam->startTime=pXStepParam->pMinValue[0].index;
+								
+										if(FCSleepCallback)
+											FCSleepCallback(pXSleepParam->startTime, dXSleep_WakeUp);
+									}
+								
+									pXSleepParam->staticCount=0;*/
+
+									pXSleepParam->startWalkIndex=pXStepParam->pMinValue[0].index;
+								}
+							#endif
 							}
 
 							printf("damon ===> min data : (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d) (%d, %d) (%d, %d) \n", 
@@ -586,6 +909,13 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							// test
 							if(tXTestCnt<1024)
 								pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
+
+							#ifdef dXUseCalSleep
+								if(tXTestCnt>=2)
+								{
+									ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+								}
+							#endif
 							
 								if(j+5<7)
 								{
@@ -621,6 +951,13 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							// test
 							if(tXTestCnt<1024)
 								pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
+							
+							#ifdef dXUseCalSleep
+								if(tXTestCnt>=2)
+								{
+									ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+								}
+							#endif
 							
 								if(j+3<5)
 								{
@@ -721,6 +1058,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 
 		pXStepParam->prevValue=tTempCurVal;
 	}
+#endif
 
 	printf("damon ====> step count : %d %d \n", pXStepParam->stepCount, tXTestCnt);
 }
