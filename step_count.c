@@ -14,6 +14,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 
+#if 1
+
 #define dXStartWalkStep	10
 
 #define dXUseCalSleep
@@ -114,7 +116,7 @@ printf("damon ===> max val : %d \n", tTempMaxVal);
 
 	unsigned char *pTempImgData=pTempRgbImg->imageData;
 	int m,n, c=0;
-	int r, g, b;
+	int r, g, b, tTempColor=0;
 	CvPoint tTempPrevPoint, tTempCurPoint;
 	tTempPrevPoint.x=0;
 	tTempPrevPoint.y=1000-pTempOutData[0];
@@ -125,13 +127,13 @@ printf("damon ===> max val : %d \n", tTempMaxVal);
 		tTempCurPoint.x=m;
 		tTempCurPoint.y=1000-pTempOutData[m];
 	//		cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(255, 0, 0), 1, 8);
-		if(m>675 && m<1851)
+		if(m>962 && m<989)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 255, 255), 1, 8, 0);
-		else if(m>=2358 && m<2380 /*tTempSampleCnt+260*/)
+		else if(m>=989 && m<1033 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 255, 0), 1, 8, 0);
-		else if(m>=2444 && m<2608 /*tTempSampleCnt+260*/)
+		else if(m>=1033 && m<1119 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 0, 255), 1, 8, 0);
-		else if(m>=1466 && m<1507 /*tTempSampleCnt+260*/)
+		else if(m>=1119 && m<1163 /*tTempSampleCnt+260*/)
 			cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(255, 255, 0), 1, 8, 0);
 	//	else if(m>=935 && m<971 /*tTempSampleCnt+260*/)
 	//		cvLine(pTempRgbImg, tTempPrevPoint, tTempCurPoint, CV_RGB(0, 255, 255), 1, 8, 0);	
@@ -151,9 +153,22 @@ printf("damon ===> max val : %d \n", tTempMaxVal);
 		{
 		
 	//	printf("damon ===> save cnt : %d %d %d %d %d \n", c, tTempSaveMinCnt, m, pTempSaveMinIndex[c], pTempSaveMinIndex[c+1]);
-			r=abs(rand()%255);
-			g=abs(rand()%255);
-			b=abs(rand()%255);
+
+		//	r=abs(rand()%255);
+		//	g=abs(rand()%255);
+		//	b=abs(rand()%255);
+
+			if(tTempColor==0)
+			{
+				r=255; g=255; b=0;
+			}else if(tTempColor==1)
+			{
+				r=0; 	g=255; b=0;
+			}else 
+			{
+				r=0;	g=0;	b=255;
+			}
+			tTempColor = (tTempColor+1)%3;
 		
 			for(i=pXTestData[c]; i<pXTestData[c+1]; i++)
 	//		for(i=pXMaxTestData[c]; i<pXMaxTestData[c+1]; i++)
@@ -186,46 +201,6 @@ printf("damon ===> max val : %d \n", tTempMaxVal);
 
 	cvShowImage("滤波后图形", pTempRgbImg);
 	
-}
-
-void filter_data(int *pInputData ,int tInputLength)
-{
-	int i=0, j=0;
-	int pTempValue[5]={0};
-
-	// 中值滤波
-	for(i=0; i<tInputLength-5; i++)
-	{
-		int tTempTotalVal=0;
-		for(j=0; j<5; j++)
-		{
-			pTempValue[j]=pInputData[i+j];
-			tTempTotalVal += pTempValue[j];
-		}
-
-	//	printf("damon ===> start : %d %d %d %d %d \n", pTempValue[0], pTempValue[1], pTempValue[2], pTempValue[3], pTempValue[4]);
-		int m=0, n=0;
-		for(m=0; m<4; m++)
-		{
-			for(n=m+1; n<5; n++)
-			{
-				if(pTempValue[m]>pTempValue[n])
-				{
-					int tTempSwap=pTempValue[m];
-					pTempValue[m]=pTempValue[n];
-					pTempValue[n]=tTempSwap;
-				}
-			}	
-		}
-
-	
-	//	printf("damon ===> end : %d %d %d %d %d \n", pTempValue[0], pTempValue[1], pTempValue[2], pTempValue[3], pTempValue[4]);
-		pInputData[i]= pTempValue[2];
-	//	sleep(1);
-
-	}
-
-//	draw_image(pInputData, tInputLength, "filter data img");
 }
 
 
@@ -668,7 +643,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 
 						pXStepParam->falseVlue=0;
 						pXStepParam->maxIndex--;
-					}else if((i-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>8) && (tTempCurVal-tTempAvgVal>10))
+					}else if((i-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>8) && (pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index-tTempCurVal<20)/*(tTempCurVal-tTempAvgVal>10)*/)
 					{
 				//	printf("damon ===> delete max val 11 : %d %d \n", pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index, 
 				//		pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value);
@@ -691,7 +666,6 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							pXStepParam->pMinValue[pXStepParam->minIndex-1].value,
 							pXStepParam->pMinValue[pXStepParam->minIndex-2].index, 
 							pXStepParam->pMinValue[pXStepParam->minIndex-2].value);
-					
 
 						if((pXStepParam->stepMode==dXMode_Static) && (i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>120))
 						{
@@ -700,7 +674,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								int j=0;
 								for(j=0; j<pXStepParam->minIndex-1; j++)
 								{
-							//	printf("damon  ===> delete val : %d  %d \n", pXStepParam->minIndex, pXStepParam->pMinValue[j].index);
+								printf("damon  ===> delete val : %d  %d \n", pXStepParam->minIndex, pXStepParam->pMinValue[j].index);
 									if(tXTestCnt<1024)
 										pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
 							
@@ -723,7 +697,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							if(pXStepParam->stepMode==dXMode_Walk)
 							{
 								int j=0;
-								for(j=0; j<pXStepParam->minIndex; j++)
+								for(j=0; j<pXStepParam->minIndex-1; j++)
 								{
 									if(tXTestCnt<1024)
 										pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
@@ -751,14 +725,16 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 				
 							if(i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index<15)
 							{
+							printf("damon ===> 000 delete min val : %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
 								if(pXStepParam->stepMode==dXMode_Static)
 									pXStepParam->minIndex=0;
-								else
+								else if(pXStepParam->pMinValue[pXStepParam->minIndex-1].value-pXStepParam->prevValue>10)
 									pXStepParam->minIndex--;
 							}else if(pXStepParam->pMinValue[pXStepParam->minIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-2].value>100)
 							{
 								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index-pXStepParam->pMinValue[pXStepParam->minIndex-2].index<35)
 								{
+								printf("damon ===> 111 delete min val : %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
 																
 									pXStepParam->pMinValue[pXStepParam->minIndex-1].value=0;
 									pXStepParam->pMinValue[pXStepParam->minIndex-1].index=0;
@@ -768,6 +744,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 							{
 								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index-pXStepParam->pMinValue[pXStepParam->minIndex-2].index<35)
 								{
+								printf("damon ===> 222 delete min val : %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-2].value);
 								
 									pXStepParam->pMinValue[pXStepParam->minIndex-2].value=pXStepParam->pMinValue[pXStepParam->minIndex-1].value;
 									pXStepParam->pMinValue[pXStepParam->minIndex-2].index=pXStepParam->pMinValue[pXStepParam->minIndex-1].index;
@@ -778,8 +755,10 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								int tTempSubVal=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-2].value;
 								int tTempSumVal=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value+pXStepParam->pMinValue[pXStepParam->minIndex-2].value;
 
+
 								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].value>tTempSumVal/2)
 								{
+								printf("damon ===> 333 delete min val : %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].value);								
 									pXStepParam->minIndex--;
 								}else if((tTempSubVal>170 && pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<150) && 
 									(pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<150))
@@ -788,6 +767,37 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 											pXStepParam->pMinValue[pXStepParam->minIndex-1].value, pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value, pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value);
 								
 									pXStepParam->minIndex--;
+								}else
+								{
+							/*	printf("damon ===> value %d - %d  : (%d, %d)  (%d , %d) \n",
+									pXStepParam->minIndex, pXStepParam->maxIndex,
+									pXStepParam->pMinValue[pXStepParam->minIndex-1].index, 
+									pXStepParam->pMinValue[pXStepParam->minIndex-1].value,
+									pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index,
+									pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value);
+								*/
+
+									if(pXStepParam->maxIndex>=2)
+									{
+										int tTempHTotal=0, tTempHAvgVal=0;
+										int j=0;										
+										for(j=0; j<pXStepParam->maxIndex-1; j++)
+										{
+											tTempHTotal += pXStepParam->pMaxValue[j].value;
+										}
+
+										tTempHAvgVal=tTempHTotal/(pXStepParam->maxIndex-1);
+										if(tTempHAvgVal- pXStepParam->pMinValue[pXStepParam->minIndex-1].value<30)
+										{
+									printf("damon ===> 888 delete min val : %d %d \n", tTempHAvgVal, pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
+											pXStepParam->minIndex--;
+										}
+									}else if(pXStepParam->minIndex>=3 && pXStepParam->maxIndex==0)
+									{									
+									printf("damon ===> 444 delete min val : %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
+										pXStepParam->minIndex--;
+									}
+
 								}
 							}
 						}
@@ -808,13 +818,19 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 						printf("\n");
 					}*/
 
-					
+					if(i>1033 && i<1119)
+					{
+						printf("damon ===> add min val : %d %d - %d %d \n", i, pXStepParam->prevValue, pXStepParam->minIndex, pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
+					}
+
+			//	printf("damon ===> %d %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].value, pXStepParam->prevValue);
 					pXStepParam->pMinValue[pXStepParam->minIndex].value=pXStepParam->prevValue;
 					pXStepParam->pMinValue[pXStepParam->minIndex].index=i-1;
 					pXStepParam->minIndex++;
-					
+				
 					pXStepParam->totalValue=0;
 					pXStepParam->totalCount=0;
+					
 				}else if(i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>5)
 				{
 					pXStepParam->down=0;
@@ -876,12 +892,38 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 						if(pXStepParam->minIndex>=7)
 						{
 							// cal step count 
-						
+
+							int tTempHTotalVal=0, tTempHAvgVal=0;
+							int tTempLTotalVal=0, tTempLAvgVal=0, tTempLMaxVal=0, tTempLMinVal=0;
+							int j=0;
+
+							if(pXStepParam->maxIndex>0)
+							{
+								for(j=0; j<pXStepParam->maxIndex; j++)
+									tTempHTotalVal += pXStepParam->pMaxValue[j].value;
+								tTempHAvgVal=tTempHTotalVal/pXStepParam->maxIndex;
+							}
+
+							for(j=0; j<pXStepParam->minIndex; j++)
+							{
+								if(tTempLMaxVal<pXStepParam->pMinValue[j].value)
+									tTempLMaxVal=pXStepParam->pMinValue[j].value;
+
+								if(tTempLMinVal==0 || tTempLMinVal>pXStepParam->pMinValue[j].value)
+									tTempLMinVal=pXStepParam->pMinValue[j].value;
+
+								tTempLTotalVal += pXStepParam->pMinValue[j].value;
+							}
+							tTempLAvgVal=tTempLTotalVal/pXStepParam->minIndex;
+						printf("damon ====> start walk  maxAvg = %d , minAvg=%d \n", tTempHAvgVal, tTempLAvgVal);
+
+							
 							pXStepParam->startStep += 5;
 							if(pXStepParam->startStep>=dXStartWalkStep)
 							{
 						printf("damon ===> start walk : %d %d %d \n", pXStepParam->maxIndex, pXStepParam->maxValueCnt, pXStepParam->minIndex);
-								if(pXStepParam->maxValueCnt>5)
+						
+								if((pXStepParam->maxValueCnt>5) && (pXStepParam->maxIndex>=2) && (tTempHAvgVal-tTempLAvgVal>=30))
 								{
 									pXStepParam->stepCount += pXStepParam->startStep;
 									pXStepParam->stepMode=dXMode_Walk;
@@ -913,7 +955,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								}
 							}
 
-							if(pXStepParam->stepMode==dXMode_Walk)
+						/*	if(pXStepParam->stepMode==dXMode_Walk)
 							{
 								printf("damon ===> start walk max data %d %d :  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d) \n", 
 									pXStepParam->maxIndex, pXStepParam->maxValueCnt,
@@ -924,7 +966,7 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 									pXStepParam->pMaxValue[4].index, pXStepParam->pMaxValue[4].value,
 									pXStepParam->pMaxValue[5].index, pXStepParam->pMaxValue[5].value,
 									pXStepParam->pMaxValue[6].index, pXStepParam->pMaxValue[6].value);
-							}
+							}*/
 
 
 							printf("damon ===> min data : (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d)  (%d, %d) (%d, %d) (%d, %d) \n", 
@@ -935,33 +977,40 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								pXStepParam->pMinValue[4].index, pXStepParam->pMinValue[4].value,
 								pXStepParam->pMinValue[5].index, pXStepParam->pMinValue[5].value,
 								pXStepParam->pMinValue[6].index, pXStepParam->pMinValue[6].value);
-							
-							int j=0;
-							for(j=0; j<5; j ++)
-							{
-							// test
-							if(tXTestCnt<1024)
-								pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
 
-							#ifdef dXUseCalSleep
-								if(tXTestCnt>=2)
+							if(tTempHAvgVal-tTempLAvgVal>30)
+							{
+								int j=0;
+								for(j=0; j<5; j ++)
 								{
-									ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+								// test
+								if(tXTestCnt<1024)
+									pXTestData[tXTestCnt++]=pXStepParam->pMinValue[j].index;
+
+								#ifdef dXUseCalSleep
+									if(tXTestCnt>=2)
+									{
+										ProcessWaveStep(pXTestData[tXTestCnt-2], pXTestData[tXTestCnt-1]);
+									}
+								#endif
+								
+									if(j+5<7)
+									{
+										pXStepParam->pMinValue[j].value=pXStepParam->pMinValue[j+5].value;
+										pXStepParam->pMinValue[j].index=pXStepParam->pMinValue[j+5].index;
+									}else
+									{
+										pXStepParam->pMinValue[j].value=0;
+										pXStepParam->pMinValue[j].index=0;
+									}
 								}
-							#endif
 							
-								if(j+5<7)
-								{
-									pXStepParam->pMinValue[j].value=pXStepParam->pMinValue[j+5].value;
-									pXStepParam->pMinValue[j].index=pXStepParam->pMinValue[j+5].index;
-								}else
-								{
-									pXStepParam->pMinValue[j].value=0;
-									pXStepParam->pMinValue[j].index=0;
-								}
+								pXStepParam->minIndex -= 5;
+							}else
+							{
+								pXStepParam->minIndex=0;
+								pXStepParam->startStep=0;
 							}
-						
-							pXStepParam->minIndex -= 5;
 						}
 
 					}else if(pXStepParam->stepMode==dXMode_Walk)
@@ -977,6 +1026,13 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 								pXStepParam->pMinValue[0].index, pXStepParam->pMinValue[0].value,
 								pXStepParam->pMinValue[1].index, pXStepParam->pMinValue[1].value,
 								pXStepParam->pMinValue[2].index, pXStepParam->pMinValue[2].value);
+
+							
+						/*	printf("damon ===> max data : (%d, %d)   (%d, %d)   (%d, %d) \n",
+								pXStepParam->pMaxValue[0].index, pXStepParam->pMaxValue[0].value,
+								pXStepParam->pMaxValue[1].index, pXStepParam->pMaxValue[1].value,
+								pXStepParam->pMaxValue[2].index, pXStepParam->pMaxValue[2].value);
+							*/
 
 							int j=0;
 							for(j=0; j<3; j ++)
@@ -1026,19 +1082,19 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 					if(tTempCurVal<pXStepParam->pMinValue[pXStepParam->minIndex-1].value)
 					{
 					
-					if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index>2065 && 
-						pXStepParam->pMinValue[pXStepParam->minIndex-1].index<2142)
+					if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index>1033 && 
+						pXStepParam->pMinValue[pXStepParam->minIndex-1].index<1119)
 						printf("damon ===> delete min val 00 : %d %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].index, 
 							pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
 					
 						pXStepParam->falseVlue=0;
 						pXStepParam->minIndex--;
-					}else if((i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>8) && (tTempAvgVal-tTempCurVal>10))
-					{					
-					if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index>2065 && 
-						pXStepParam->pMinValue[pXStepParam->minIndex-1].index<2142)
-						printf("damon ===> delete min val 11 : %d %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].index, 
-							pXStepParam->pMinValue[pXStepParam->minIndex-1].value);
+					}else if((i-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>8) && (tTempCurVal-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>20)/*(tTempAvgVal-tTempCurVal>10)*/)
+					{
+			//		if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index>1033 && 
+			//			pXStepParam->pMinValue[pXStepParam->minIndex-1].index<1119)
+						printf("damon ===> delete min val 11 : %d %d - %d %d %d \n", pXStepParam->pMinValue[pXStepParam->minIndex-1].index, 
+							pXStepParam->pMinValue[pXStepParam->minIndex-1].value, i, tTempAvgVal, tTempCurVal);
 					
 						pXStepParam->falseVlue=0;
 						pXStepParam->minIndex--;
@@ -1053,17 +1109,17 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 
 					if(pXStepParam->maxIndex>0)
 					{
-						if(i-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>200)
+						if(i-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>150)
 						{
 							pXStepParam->maxIndex=0;
 						}else if(pXStepParam->maxIndex>=2)
 						{
-							if(pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value>120)
+							if(pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value>100)
 							{
 								pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value;
 								pXStepParam->pMaxValue[pXStepParam->maxIndex-2].index=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index;
 								pXStepParam->maxIndex--;
-							}else if(pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value>120)
+							}else if(pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value>100)
 							{
 								pXStepParam->maxIndex--;
 							}else if(pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index-pXStepParam->pMaxValue[pXStepParam->maxIndex-2].index<10)
@@ -1131,412 +1187,48 @@ printf("damon ====> init val : %d %d %d \n", pXStepParam->minIndex, pXStepParam-
 
 	printf("damon ====> step count : %d %d %d \n", pXStepParam->stepCount, tXTestCnt, tXMaxTestCnt);
 }
+#endif
 
 
-#if 0
-int sleep_buff[10]={0};
-int sleep_count=0;
-int pXFilterBuf[5]={0};
-int tXFilterCnt=0, tXFilterIdx=0;
-
-int StepValueFilter(int tInputData)
+void filter_data(int *pInputData ,int tInputLength)
 {
-//printf("damon ===> %d - %d %d \n", tXFilterCnt, tInputData, index);
-
-	if(tXFilterCnt<5)
-	{
-		pXFilterBuf[tXFilterCnt++]=tInputData;
-		return -1;
-	}
-
-	int tTempIndex=tXFilterIdx%5;
-	tXFilterIdx=(tXFilterIdx+1)%5;
-	pXFilterBuf[tTempIndex]=tInputData;
-
+	int i=0, j=0;
 	int pTempValue[5]={0};
-	int m=0, n=0;
 
-	for(m=0; m<5; m++)
-		pTempValue[m]=pXFilterBuf[m];
-
-	for(m=0; m<4; m++)
+	// 中值滤波
+	for(i=0; i<tInputLength-5; i++)
 	{
-		for(n=m+1; n<5; n++)
+		int tTempTotalVal=0;
+		for(j=0; j<5; j++)
 		{
-			if(pTempValue[m]>pTempValue[n])
+			pTempValue[j]=pInputData[i+j];
+			tTempTotalVal += pTempValue[j];
+		}
+
+	//	printf("damon ===> start : %d %d %d %d %d \n", pTempValue[0], pTempValue[1], pTempValue[2], pTempValue[3], pTempValue[4]);
+		int m=0, n=0;
+		for(m=0; m<4; m++)
+		{
+			for(n=m+1; n<5; n++)
 			{
+				if(pTempValue[m]>pTempValue[n])
+				{
 					int tTempSwap=pTempValue[m];
 					pTempValue[m]=pTempValue[n];
 					pTempValue[n]=tTempSwap;
-			}
-		}	
-	}
-
-	return pTempValue[2];
-
-/*	printf("damon ===> filter data : %d %d %d %d %d \n", pXFilterBuf[0].value, pXFilterBuf[1].value, 
-		pXFilterBuf[2].value, pXFilterBuf[3].value, pXFilterBuf[4].value);*/
-}
-	
-void testFc(int inputData, int index)
-{
-	int tTempRetVal=0;
-	tTempRetVal=StepValueFilter(inputData);
-	if(tTempRetVal==-1)
-		return ;
-
-	inputData=tTempRetVal;
-	if(pXStepParam==NULL)
-	{
-		pXStepParam=(StepParam *)malloc(sizeof(StepParam));
-		memset(pXStepParam, 0, sizeof(StepParam));
-
-		
-		pXStepParam->prevValue=inputData;
-		return ;
-	}
-
-//printf("damon ===> step count = %d %d \n", inputData, index);
-
-/*	if(index == 0)
-	{
-		pXStepParam->prevValue=pXFilterBuf[2].value;//inputData;
-		return ;
-	}*/
-	
-#ifdef dXUseCalSleep
-	if(pXSleepParam==NULL)
-	{
-		pXSleepParam=(SleepParam *)malloc(sizeof(SleepParam));
-		memset(pXSleepParam, 0, sizeof(SleepParam));
-		pXSleepParam->sleepMode=dXSleep_NotDetec;
-	}
-
-	if(FCSleepCallback==NULL)
-	{
-		FCSleepCallback=MySleepCallback;
-	}
-#endif
-
-
-	int tTempCurVal=0;
-	int tTempAvgVal=0;
-	int tTempHighHzVal=0;
-
-#if 1
-	//for(i=0; i<tInputLength; i++)
-	{
-	//	process_sleep(pInputData[i], i);
-	
-		tTempCurVal=inputData;
-		pXStepParam->totalValue += tTempCurVal;
-		pXStepParam->totalCount++;
-		tTempAvgVal=pXStepParam->totalValue/pXStepParam->totalCount;
-		
-		if(tTempCurVal>pXStepParam->prevValue)	// up
-		{
-			if(pXStepParam->up==0 && pXStepParam->down==0)
-			{
-				pXStepParam->pMinValue[pXStepParam->minIndex].value=pXStepParam->prevValue;
-				pXStepParam->pMinValue[pXStepParam->minIndex].index=index-1;
-				pXStepParam->minIndex++;
-				pXStepParam->up=1;
-			}else if(pXStepParam->up==1)
-			{
-				if(pXStepParam->falseVlue==1)
-				{
-					if(tTempCurVal>pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value)
-					{
-				//	printf("damon ===> delete max val 00 : %d %d \n", pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index, 
-				//		pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value);
-
-						pXStepParam->falseVlue=0;
-						pXStepParam->maxIndex--;
-					}else if((index-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>8) && (tTempCurVal-tTempAvgVal>10))
-					{
-				//	printf("damon ===> delete max val 11 : %d %d \n", pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index, 
-				//		pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value);
-
-						pXStepParam->falseVlue=0;
-						pXStepParam->maxIndex--;
-					}
 				}
-			}else if(pXStepParam->down==1)
-			{
-				if(pXStepParam->falseVlue==0)
-				{
-					pXStepParam->falseVlue=1;
-
-					if(pXStepParam->minIndex>0)
-					{
-						if((pXStepParam->stepMode==dXMode_Static) && (index-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>120))
-						{
-						
-							pXStepParam->minIndex=0;
-						}
-						else	if((index-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>200) 
-							|| (pXStepParam->lastStepIndex>0 && index-pXStepParam->lastStepIndex>300))
-						{
-						
-							if(pXStepParam->stepMode==dXMode_Walk)
-							{
-								int j=0;
-								for(j=0; j<pXStepParam->minIndex; j++)
-								{
-									if(sleep_count<10)
-										sleep_buff[sleep_count++]=pXStepParam->pMinValue[j].index;
-
-								#ifdef dXUseCalSleep
-									if(sleep_count>=2)
-									{
-										ProcessWaveStep(sleep_buff[sleep_count-2], sleep_buff[sleep_count-1]);
-									}
-								#endif
-								}
-								
-								pXStepParam->stepCount += pXStepParam->minIndex;
-							}
-							pXStepParam->minIndex=0;
-							pXStepParam->stepMode=dXMode_Static;
-							pXStepParam->startStep=0;
-							pXStepParam->lastStepIndex=0;
-						}else if(pXStepParam->minIndex>=2)
-						{
-			
-							if(index-pXStepParam->pMinValue[pXStepParam->minIndex-1].index<15)
-							{
-								if(pXStepParam->stepMode==dXMode_Static)
-									pXStepParam->minIndex=0;
-								else
-									pXStepParam->minIndex--;								
-							}else if(pXStepParam->pMinValue[pXStepParam->minIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-2].value>100)
-							{
-								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index-pXStepParam->pMinValue[pXStepParam->minIndex-2].index<35)
-								{
-																
-									pXStepParam->pMinValue[pXStepParam->minIndex-1].value=0;
-									pXStepParam->pMinValue[pXStepParam->minIndex-1].index=0;
-									pXStepParam->minIndex--;
-								}
-							}else if(pXStepParam->pMinValue[pXStepParam->minIndex-2].value-pXStepParam->pMinValue[pXStepParam->minIndex-1].value>100)
-							{
-								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].index-pXStepParam->pMinValue[pXStepParam->minIndex-2].index<35)
-								{
-								
-									pXStepParam->pMinValue[pXStepParam->minIndex-2].value=pXStepParam->pMinValue[pXStepParam->minIndex-1].value;
-									pXStepParam->pMinValue[pXStepParam->minIndex-2].index=pXStepParam->pMinValue[pXStepParam->minIndex-1].index;
-									pXStepParam->minIndex--;								
-								}
-							}else if(pXStepParam->maxIndex>1)
-							{
-						//	printf("damon ====> delete val : \n");
-								int tTempSubVal=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-2].value;
-								int tTempSumVal=pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value+pXStepParam->pMinValue[pXStepParam->minIndex-2].value;
-
-								if(pXStepParam->pMinValue[pXStepParam->minIndex-1].value>tTempSumVal/2 )
-								{
-									pXStepParam->minIndex--;
-								}else if((tTempSubVal>170 && pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<150) && 
-									(pXStepParam->pMaxValue[pXStepParam->maxIndex-2].value-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<150))
-								{
-									pXStepParam->minIndex--;
-								}
-							}
-						}
-
-					}
-					
-					pXStepParam->pMinValue[pXStepParam->minIndex].value=pXStepParam->prevValue;
-					pXStepParam->pMinValue[pXStepParam->minIndex].index=index-1;
-					pXStepParam->minIndex++;
-					
-					pXStepParam->totalValue=0;
-					pXStepParam->totalCount=0;
-				}else if(index-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>5)
-				{
-					pXStepParam->down=0;
-					pXStepParam->up=1;
-					pXStepParam->falseVlue=0;
-				
-
-					if(tTempAvgVal-pXStepParam->pMinValue[pXStepParam->minIndex-1].value<5)
-					{						
-						pXStepParam->minIndex--;
-					}
-
-			//		DBG_DIRECT("osatman xxx> stepMode = %d\n", pXStepParam->stepMode);
-					if(pXStepParam->stepMode==dXMode_Static)
-					{
-						if(pXStepParam->minIndex>=7)
-						{
-							// cal step count 
-						
-							pXStepParam->startStep += 5;
-							if(pXStepParam->startStep>=dXStartWalkStep)
-							{
-								pXStepParam->stepCount += pXStepParam->startStep;
-								pXStepParam->stepMode=dXMode_Walk;
-								pXStepParam->startStep=0;
-
-								pXStepParam->lastStepIndex=pXStepParam->pMinValue[4].index;
-
-
-							#ifdef dXUseCalSleep
-								if(pXSleepParam)
-								{
-									pXSleepParam->startWalkIndex=pXStepParam->pMinValue[0].index;
-								}
-							#endif
-							}
-
-							
-							
-							int j=0;
-							for(j=0; j<5; j ++)
-							{
-							// test
-							if(sleep_count<10)
-								sleep_buff[sleep_count++]=pXStepParam->pMinValue[j].index;
-
-							#ifdef dXUseCalSleep
-								if(sleep_count>=2)
-								{
-									ProcessWaveStep(sleep_buff[sleep_count-2], sleep_buff[sleep_count-1]);
-								}
-							#endif
-							
-								if(j+5<7)
-								{
-									pXStepParam->pMinValue[j].value=pXStepParam->pMinValue[j+5].value;
-									pXStepParam->pMinValue[j].index=pXStepParam->pMinValue[j+5].index;
-								}else
-								{
-									pXStepParam->pMinValue[j].value=0;
-									pXStepParam->pMinValue[j].index=0;
-								}
-							}
-						
-							pXStepParam->minIndex -= 5;
-						}
-
-					}else if(pXStepParam->stepMode==dXMode_Walk)
-					{
-
-				//		DBG_DIRECT("osatman xxx> minIndex = %d\n", pXStepParam->minIndex);
-						if(pXStepParam->minIndex>=5)
-						{
-							// cal step count 
-						
-							pXStepParam->stepCount += 3;
-							pXStepParam->lastStepIndex=pXStepParam->pMinValue[2].index;
-							
-							int j=0;
-							for(j=0; j<3; j ++)
-							{
-							// test
-							if(sleep_count<10)
-								sleep_buff[sleep_count++]=pXStepParam->pMinValue[j].index;
-							
-							#ifdef dXUseCalSleep
-								if(sleep_count>=2)
-								{
-									ProcessWaveStep(sleep_buff[sleep_count-2], sleep_buff[sleep_count-1]);
-								}
-							#endif
-							
-								if(j+3<5)
-								{
-									pXStepParam->pMinValue[j].value=pXStepParam->pMinValue[j+3].value;
-									pXStepParam->pMinValue[j].index=pXStepParam->pMinValue[j+3].index;
-								}else
-								{
-									pXStepParam->pMinValue[j].value=0;
-									pXStepParam->pMinValue[j].index=0;
-								}
-							}
-						
-							pXStepParam->minIndex -= 3;
-						}
-							
-					}
-					
-				}
-
-			}
-		}else
-		{
-			if(pXStepParam->up==0 && pXStepParam->down==0)
-			{
-				pXStepParam->down=1;
-				pXStepParam->pMaxValue[pXStepParam->maxIndex].value=pXStepParam->prevValue;
-				pXStepParam->pMaxValue[pXStepParam->maxIndex].index=index-1;
-				pXStepParam->maxIndex++;
-			}else if(pXStepParam->down==1)
-			{
-				if(pXStepParam->falseVlue==1)
-				{
-					if(tTempCurVal<pXStepParam->pMinValue[pXStepParam->minIndex-1].value)
-					{
-						pXStepParam->falseVlue=0;
-						pXStepParam->minIndex--;
-					}else if((index-pXStepParam->pMinValue[pXStepParam->minIndex-1].index>8) && (tTempAvgVal-tTempCurVal>10))
-					{					
-				
-						pXStepParam->falseVlue=0;
-						pXStepParam->minIndex--;
-					}
-				}
-			}else if(pXStepParam->up==1)
-			{
-				if(pXStepParam->falseVlue==0)
-				{
-					pXStepParam->falseVlue=1;
-
-					pXStepParam->pMaxValue[pXStepParam->maxIndex].index=index-1;
-					pXStepParam->pMaxValue[pXStepParam->maxIndex].value=pXStepParam->prevValue;
-					pXStepParam->maxIndex++;
-
-					pXStepParam->totalCount=0;
-					pXStepParam->totalValue=0;
-				}else if(index-pXStepParam->pMaxValue[pXStepParam->maxIndex-1].index>5)
-				{
-					pXStepParam->down=1;
-					pXStepParam->up=0;
-					pXStepParam->falseVlue=0;
-
-					if(pXStepParam->pMaxValue[pXStepParam->maxIndex-1].value-tTempAvgVal<5)
-					{
-						pXStepParam->maxIndex--;
-					}
-
-					if(pXStepParam->maxIndex>=7)
-					{
-						int j=0;
-						for(j=0; j<5; j++)
-						{
-							if(j+5<7)
-							{
-								pXStepParam->pMaxValue[j].value=pXStepParam->pMaxValue[j+5].value;
-								pXStepParam->pMaxValue[j].index=pXStepParam->pMaxValue[j+5].index;
-							}else 
-							{
-								pXStepParam->pMaxValue[j].value=0;
-								pXStepParam->pMaxValue[j].index=0;
-							}
-						}
-
-						pXStepParam->maxIndex -= 5;
-					}
-				}
-			}
+			}	
 		}
 
-		pXStepParam->prevValue=tTempCurVal;
-	}
-#endif
+	
+	//	printf("damon ===> end : %d %d %d %d %d \n", pTempValue[0], pTempValue[1], pTempValue[2], pTempValue[3], pTempValue[4]);
+		pInputData[i]= pTempValue[2];
+	//	sleep(1);
 
-}	
-#endif
+	}
+
+//	draw_image(pInputData, tInputLength, "filter data img");
+}
 
 
 int main(int argc, char *argv[])
@@ -1581,7 +1273,7 @@ int main(int argc, char *argv[])
 	int tTempSubIndex=pTempStr-pTempGSensorBuf;
 	pTempStr++;
 	
-	int i=0;
+	unsigned int i=0;
 	char pTempNum[10]={0};
 	while(pTempStr)
 	{
@@ -1624,13 +1316,15 @@ int main(int argc, char *argv[])
 	filter_data(pTempGSensorData, tTempGSensorDataNum);
 	cal_step(pTempGSensorData, tTempGSensorDataNum);
 	draw_image(pTempGSensorData, tTempGSensorDataNum, "src gsensor img");
+	printf("damon ====> step count : %d \n", pXStepParam->stepCount);
 
 
 #if 0
-memset(pXStepParam, 0, sizeof(StepParam));
+//memset(pXStepParam, 0, sizeof(StepParam));
 for(i=0; i<tTempGSensorDataNum;  i++)
-	testFc(pTempGSensorData[i], i);
-printf("damon ====> step count : %d %d \n", pXStepParam->stepCount, tXTestCnt);
+	StepCalculation(pTempGSensorData[i], i, i);
+//	testFc(pTempGSensorData[i], i);
+printf("damon ====> step count : %d \n", GetStepCount());
 #endif
 
 //draw_image(pXTest, tXTest, "src gsensor img");
